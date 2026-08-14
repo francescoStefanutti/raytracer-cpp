@@ -3,6 +3,8 @@
 #include "ray.h"
 #include "hittable.h"
 #include "color.h"
+#include "texture.h"
+#include <memory>
 #include <optional>
 #include <algorithm>
 #include <cmath>
@@ -23,11 +25,15 @@ public:
 
 class Lambertian : public Material
 {
-	Color albedo;
+	std::shared_ptr<Texture> tex;
 
 public:
-	Lambertian(Color albedo)
-		: albedo(albedo)
+	Lambertian(std::shared_ptr<Texture> texture)
+		: tex(texture)
+	{ }
+
+	Lambertian(Color constant)
+		: tex(std::make_shared<SolidColor>(constant))
 	{ }
 
 	std::optional<ScatterResult> scatter(const Ray& r_in, const HitRecord& rec) const override
@@ -36,6 +42,8 @@ public:
 		Vec3 direction = rec.n + random_unit_vector(); // rec.p - rec.p si annullano			
 		direction = direction.near_zero() ? rec.n : direction; // per evitare che la direction sia nulla. se è nulla la sostituiamo con rec.n
 		Ray scattered(rec.P, direction, r_in.time());
+		
+		auto albedo = tex->value(rec.u, rec.v, rec.P);
 
 		return ScatterResult{ albedo, scattered };
 	}
@@ -44,12 +52,16 @@ public:
 
 class Metal : public Material
 {
-	Color albedo;
+	std::shared_ptr<Texture> tex;
 	double fuzz;
 
 public:
-	Metal(Color albedo, double fuzz)
-		: albedo(albedo), fuzz(std::clamp(fuzz,0.0,1.0))
+	Metal(std::shared_ptr<Texture> texture, double fuzz)
+		: tex(texture), fuzz(std::clamp(fuzz,0.0,1.0))
+	{ }
+
+	Metal(Color constant, double fuzz)
+		: tex(std::make_shared<SolidColor>(constant)), fuzz(std::clamp(fuzz,0.0,1.0))
 	{ }
 
 	std::optional<ScatterResult> scatter(const Ray& r_in, const HitRecord& rec) const override
@@ -60,7 +72,10 @@ public:
 
 		// faccio controllo per evitare che raggio riflesso vado in direzione opposta alla normale (utile in futuro per fuzziness)
 		if (dot(scattered.direction(), rec.n) > 0)
+		{
+			auto albedo = tex->value(rec.u, rec.v, rec.P);
 			return ScatterResult{ albedo, scattered };
+		}
 		else
 			return std::nullopt;
 	}
@@ -70,6 +85,7 @@ public:
 class Dielectric : public Material
 {
 	double ir; //refraction_index
+	std::shared_ptr<Texture> tex;
 
 
 	//formula di Schlick: funzione che calcola quella probabilità di riflessione in base all'angolo
@@ -80,8 +96,16 @@ class Dielectric : public Material
 	}
 
 public:
+	Dielectric(double ir, std::shared_ptr<Texture> texture)
+		:ir(ir), tex(texture)
+	{ }
+
 	Dielectric(double ir)
-		: ir(ir)
+		: ir(ir), tex(std::make_shared<SolidColor>(Color{1,1,1}))
+	{ }
+
+	Dielectric(double ir, Color constant)
+		: ir(ir), tex(std::make_shared<SolidColor>(constant))
 	{ }
 
 	std::optional<ScatterResult> scatter(const Ray& r_in, const HitRecord& rec) const override
@@ -103,7 +127,9 @@ public:
 
 		Ray scattered(rec.P, direction, r_in.time());
 
-		return ScatterResult{ Color{1.0,1.0,1.0}, scattered, }; //il vetro non assorbe nessuno colore quinid mettiamo 1,1,1
+		auto albedo = tex->value(rec.u, rec.v, rec.P);
+
+		return ScatterResult{ albedo, scattered, };
 	}
 
 };

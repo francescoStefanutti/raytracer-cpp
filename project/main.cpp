@@ -10,22 +10,29 @@
 #include "camera.h"
 #include "material.h"
 #include "bvh.h"
+#include "texture.h"
 
 int main()
 {
 	std::ofstream image("image.ppm");
+
+	auto checkered_texture = std::make_shared<CheckerTexture>(Color{ 0.2, 0.5, 0.9 }, Color{ 0.6, 0.1, 0.2 }, 2);
+	auto world_texture = std::make_shared<ImageTexture>("images/earthmap.jpg");
+
 	auto wood = std::make_shared<Lambertian>(Color{ 0.3,0.2,0.1 });
-	auto rock = std::make_shared<Lambertian>(Color{ 0.3,0.3,0.3 });
+	auto checkered = std::make_shared<Lambertian>(checkered_texture);
 	auto gold = std::make_shared<Metal>(Color{ 1.0,1.0,0.0 }, 0.4);
 	auto copper = std::make_shared<Metal>(Color{ 0.7,0.4,0.2 }, 0.8);
 	auto glass = std::make_shared<Dielectric>(1.5);
-	
+	auto glass_green = std::make_shared<Dielectric>(1.5, Color{0,1,0});
+	auto world_material = std::make_shared<Lambertian>(world_texture);
+
 	Hittable_list world;
 	world.reserve(6);
-	world.add(std::make_shared<Sphere>(100, Point3{ 0,-100.5,-1 }, rock));
-	world.add(std::make_shared<Sphere>(0.5, Point3{ 0,0,-1 }, copper));
+	world.add(std::make_shared<Sphere>(100, Point3{ 0,-100.5,-1 }, checkered));
+	world.add(std::make_shared<Sphere>(0.5, Point3{ 0,0,-1 }, world_material));
 	world.add(std::make_shared<Sphere>(0.5, Point3{ -1.5,0,-1 }, glass));
-	world.add(std::make_shared<Sphere>(0.5, Point3{ 1.5,0,-1 }, glass));
+	world.add(std::make_shared<Sphere>(0.5, Point3{ 1.5,0,-1 }, glass_green));
 	world.add(std::make_shared<Sphere>(0.2, Point3{ 2,0,-2 }, Point3{ 2,0.5,-2 }, wood));
 	world.add(std::make_shared<Sphere>(0.2, Point3{ -2,0,-2 }, Point3{ -2,0.5,-2 }, gold));
 	

@@ -8,12 +8,19 @@
 #include <memory>
 #include <utility>
 
+
+
 class Sphere : public Hittable
 {
 	double radius;
 	Point3 center1;
 	Vec3 center_vec;
 	std::shared_ptr<Material> mat;
+
+	struct UV
+	{
+		double u, v;
+	};
 
 	Point3 current_center(double time) const
 	{
@@ -57,6 +64,9 @@ public:
 		/*Ottimizzazione della Normale (Bonus): Per calcolare la normale hai usato unit_vector(P - center). Questa funzione calcola una radice quadrata per trovare la lunghezza del vettore. Ma noi sappiamo già che il punto $P$ si trova esattamente sulla superficie della sfera, quindi la distanza dal centro è esattamente il raggio! Puoi calcolare la normale in modo molto più veloce risparmiando calcoli alla CPU:
 		auto const n = (P - center) / radius;*/
 		
+		auto uv_coordinates = get_sphere_uv(n);
+		rec.u = uv_coordinates.u;
+		rec.v = uv_coordinates.v;
 		rec.set_face_normal(ray, n);
 		rec.t = t;
 		rec.P = P;
@@ -76,6 +86,16 @@ public:
 		AABB b2{ Interval(b2_min.x, b2_max.x), Interval(b2_min.y, b2_max.y), Interval(b2_min.z, b2_max.z) };
 
 		return {b1,b2};
+	}
+
+	UV get_sphere_uv(const Point3& p) const
+	{
+		auto teta = acos(-p.y);
+		auto sigma = atan2(-p.z, p.x) + pi;
+		auto u = sigma / (2 * pi);
+		auto v = teta / pi;
+
+		return { u,v };
 	}
 
 
