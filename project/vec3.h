@@ -57,6 +57,14 @@ struct Vec3
 		return *this *= (1.0 / t);
 	}
 
+	constexpr double operator[](const int n) const
+	{
+		if(n==1) return y;
+		if (n == 2) return z;
+		return x;
+
+	}
+
 	//: le radici quadrate (std::sqrt) sono operazioni lentissime per la CPU.
 	// Per questo motivo, scriveremo due funzioni separate. Quando dovremo solo confrontare due distanze
 	// (per sapere quale oggetto è più vicino), useremo la lunghezza "al quadrato".
@@ -109,6 +117,7 @@ inline constexpr Vec3 operator/(const Vec3& u, const double t)
 {
 	return u*(1.0/t);
 }
+
 
 inline constexpr double dot(const Vec3& u, const Vec3& v)
 {

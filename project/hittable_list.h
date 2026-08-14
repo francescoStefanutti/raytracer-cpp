@@ -7,6 +7,7 @@
 class Hittable_list : public Hittable
 {
 	std::vector<std::shared_ptr<Hittable>> objects;
+	AABB bbox;
 
 public:
 	Hittable_list() = default;
@@ -19,7 +20,19 @@ public:
 	// guarda appunti sotto
 	void add(std::shared_ptr<Hittable> object)
 	{
+		bbox = AABB(bbox, object->bounding_box());
 		objects.emplace_back(std::move(object));
+	}
+
+	const std::vector<std::shared_ptr<Hittable>>& get_objects() const
+	{
+		return objects;
+	}
+
+	// mi serve anche un getter non const per quando passo la lista al bvh constructor che ha bisogno di copiarlo e modificarlo
+	std::vector<std::shared_ptr<Hittable>>& get_objects() 
+	{
+		return objects;
 	}
 
 	void reserve(size_t n)
@@ -46,6 +59,10 @@ public:
 		return hit_anything;
 	}
 
+	AABB bounding_box() const override
+	{
+		return bbox;
+	}
 };
 
 /*
@@ -106,5 +123,42 @@ public:
 * 
 * Risultato: Zero copie e massima efficienza. È il modo standard in C++ per 
 * dire a una funzione: "Prendi possesso definitivo di questa risorsa".
+* ==========================================
+*/
+
+/*
+* ==========================================
+* APPUNTI DA SENIOR DEV: OWNERSHIP E ORDINE "LEGGI-PRIMA-DI-CEDERE"
+* ==========================================
+* Perché in add() calcoliamo bbox usando "object" PRIMA di fare std::move(object)?
+*
+* CONCETTO DI OWNERSHIP (proprietà):
+*    Uno shared_ptr non È l'oggetto, è un "biglietto" che dà il diritto di
+*    accedervi e la responsabilità di gestirne la vita (tramite un contatore
+*    di riferimenti interno). std::move() non sposta l'oggetto reale in
+*    memoria: trasferisce solo QUEL BIGLIETTO da una variabile a un'altra,
+*    senza incrementare il contatore (zero overhead atomico).
+*
+* COSA SUCCEDE QUI, PASSO PER PASSO:
+*    1. object->bounding_box()
+*       -> "object" (il parametro locale di add()) è ancora un proprietario
+*          valido: il biglietto è nelle sue mani, quindi accedere
+*          all'oggetto puntato (la Sphere) è sicuro al 100%.
+*    2. objects.emplace_back(std::move(object))
+*       -> Solo ORA il biglietto passa dalla variabile locale "object"
+*          all'elemento appena creato dentro il vector. "object" diventa
+*          vuoto (punta a nullptr) da questo momento in poi.
+*
+* PERCHÉ L'ORDINE CONTA:
+*    Se invertissimo le due righe (prima il move, poi object->bounding_box()),
+*    staremmo chiedendo informazioni a un puntatore che non possiede più
+*    nulla: Undefined Behavior, quasi certamente un crash.
+*
+*    Regola pratica: quando devi SIA leggere da una risorsa SIA cederne la
+*    proprietà con std::move, leggi sempre PRIMA di cedere.
+*
+* NOTA: l'oggetto Sphere in memoria non viene mai copiato in nessuno dei due
+* passaggi. Cambia solo CHI ha il diritto di considerarsi proprietario del
+* suo indirizzo in memoria.
 * ==========================================
 */

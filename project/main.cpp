@@ -9,37 +9,34 @@
 #include "hittable_list.h"
 #include "camera.h"
 #include "material.h"
-
+#include "bvh.h"
 
 int main()
 {
 	std::ofstream image("image.ppm");
-
 	auto wood = std::make_shared<Lambertian>(Color{ 0.3,0.2,0.1 });
 	auto rock = std::make_shared<Lambertian>(Color{ 0.3,0.3,0.3 });
-
 	auto gold = std::make_shared<Metal>(Color{ 1.0,1.0,0.0 }, 0.4);
 	auto copper = std::make_shared<Metal>(Color{ 0.7,0.4,0.2 }, 0.8);
-
 	auto glass = std::make_shared<Dielectric>(1.5);
-
-
+	
 	Hittable_list world;
-	world.reserve(4);
-	// world.add(std::make_shared<Sphere>(0.5, Point3{ 3,0,-2 }, wood));
+	world.reserve(6);
 	world.add(std::make_shared<Sphere>(100, Point3{ 0,-100.5,-1 }, rock));
-	//world.add(std::make_shared<Sphere>(0.5, Point3{ -3,1,-2 }, gold));
 	world.add(std::make_shared<Sphere>(0.5, Point3{ 0,0,-1 }, copper));
 	world.add(std::make_shared<Sphere>(0.5, Point3{ -1.5,0,-1 }, glass));
 	world.add(std::make_shared<Sphere>(0.5, Point3{ 1.5,0,-1 }, glass));
-
+	world.add(std::make_shared<Sphere>(0.2, Point3{ 2,0,-2 }, Point3{ 2,0.5,-2 }, wood));
+	world.add(std::make_shared<Sphere>(0.2, Point3{ -2,0,-2 }, Point3{ -2,0.5,-2 }, gold));
+	
+	BVH_node tree(world);
 
 	Camera camera;
-	camera.lookfrom = {-2, 2, 1};
+	camera.lookfrom = {-3, 3, 1};
 	camera.vfov = 40.0;
-	camera.defocus_angle = 10.0;
+	camera.defocus_angle = 5.0;
 	camera.focus_dist = (camera.lookfrom - camera.lookat).length(); // distanza giusta per mettere afuoco la palla di rame
-	camera.Render(world, image);
+	camera.Render(tree, image);
 }
 
 /*
@@ -62,7 +59,6 @@ int main()
 *   mostrare qualsiasi cosa, rendendo inutile il nostro \r.
 * ==========================================
 */
-
 /*
 * ==========================================
 * APPUNTI DA SENIOR DEV: CONSTEXPR vs CONST E LA MAGIA DI AUTO
@@ -79,7 +75,7 @@ int main()
 * 
 * 2. L'errore classico con constexpr:
 *    - Non puoi usarlo se il valore dipende da calcoli dinamici o da condizioni 
-*      (come `image_height = (image_height < 1) ? 1 : image_height`). In quel caso, 
+*      (come image_height = (image_height < 1) ? 1 : image_height). In quel caso, 
 *      si usa "const".
 * 
 * 3. Perché usare "const auto" anche quando conosciamo il tipo (es. const Vec3):
@@ -88,4 +84,4 @@ int main()
 *    - Performance: A livello di codice macchina generato, "const auto" e "const Vec3" 
 *      producono esattamente lo stesso identico binario (zero overhead).
 * ==========================================
-*/
+*/ 

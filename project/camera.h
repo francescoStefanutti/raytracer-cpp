@@ -68,7 +68,7 @@ public:
 						const auto pixel_random = pixel_center + pixel_sample_square();
 						const auto ray_direction = pixel_random - origin;
 
-						Ray ray(origin, ray_direction);
+						Ray ray(origin, ray_direction, random_double());
 
 						pixel_color += ray_color(ray, world, max_depth);
 					}

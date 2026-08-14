@@ -35,7 +35,7 @@ public:
 		//  Calcolo la direzione del rimbalzo casuale
 		Vec3 direction = rec.n + random_unit_vector(); // rec.p - rec.p si annullano			
 		direction = direction.near_zero() ? rec.n : direction; // per evitare che la direction sia nulla. se è nulla la sostituiamo con rec.n
-		Ray scattered(rec.P, direction);
+		Ray scattered(rec.P, direction, r_in.time());
 
 		return ScatterResult{ albedo, scattered };
 	}
@@ -56,7 +56,7 @@ public:
 	{
 		//  Calcolo la direzione del rimbalzo preciso (normalizzato) e sommo una fuzziness casuale
 		Vec3 direction = unit_vector(reflect(r_in.direction(), rec.n)) + fuzz*random_unit_vector();
-		Ray scattered(rec.P, direction);
+		Ray scattered(rec.P, direction, r_in.time());
 
 		// faccio controllo per evitare che raggio riflesso vado in direzione opposta alla normale (utile in futuro per fuzziness)
 		if (dot(scattered.direction(), rec.n) > 0)
@@ -101,7 +101,7 @@ public:
 		else
 			direction = refract(r_in.direction(), rec.n, refraction_ratio);
 
-		Ray scattered(rec.P, direction);
+		Ray scattered(rec.P, direction, r_in.time());
 
 		return ScatterResult{ Color{1.0,1.0,1.0}, scattered, }; //il vetro non assorbe nessuno colore quinid mettiamo 1,1,1
 	}
