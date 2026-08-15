@@ -71,5 +71,8 @@
     <ClInclude Include="external\stb_image.h">
       <Filter>external</Filter>
     </ClInclude>
+    <ClInclude Include="perlin.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

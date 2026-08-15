@@ -18,6 +18,7 @@ int main()
 
 	auto checkered_texture = std::make_shared<CheckerTexture>(Color{ 0.2, 0.5, 0.9 }, Color{ 0.6, 0.1, 0.2 }, 2);
 	auto world_texture = std::make_shared<ImageTexture>("images/earthmap.jpg");
+	auto noise_texture = std::make_shared<NoiseTexture>(1, NoiseTexture::Mode::Turbolence, 5);
 
 	auto wood = std::make_shared<Lambertian>(Color{ 0.3,0.2,0.1 });
 	auto checkered = std::make_shared<Lambertian>(checkered_texture);
@@ -26,10 +27,11 @@ int main()
 	auto glass = std::make_shared<Dielectric>(1.5);
 	auto glass_green = std::make_shared<Dielectric>(1.5, Color{0,1,0});
 	auto world_material = std::make_shared<Lambertian>(world_texture);
+	auto noise_material = std::make_shared<Metal>(noise_texture, 0.3);
 
 	Hittable_list world;
 	world.reserve(6);
-	world.add(std::make_shared<Sphere>(100, Point3{ 0,-100.5,-1 }, checkered));
+	world.add(std::make_shared<Sphere>(100, Point3{ 0,-100.5,-1 }, noise_material));
 	world.add(std::make_shared<Sphere>(0.5, Point3{ 0,0,-1 }, world_material));
 	world.add(std::make_shared<Sphere>(0.5, Point3{ -1.5,0,-1 }, glass));
 	world.add(std::make_shared<Sphere>(0.5, Point3{ 1.5,0,-1 }, glass_green));
