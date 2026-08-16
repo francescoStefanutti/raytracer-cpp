@@ -1,6 +1,7 @@
 #pragma once
 #include "interval.h"
 #include "ray.h"
+#include "vec3.h"
 
 // Axis-Aligned Bounding Box: parallelepipedo allineato agli assi, definito come intersezione di tre intervalli (uno per asse x/y/z). Usato per test di intersezione rapidi ed economici prima di testare gli oggetti veri.
 class AABB
@@ -12,10 +13,17 @@ public:
 	AABB(Interval x, Interval y, Interval z)
 		: x(x), y(y), z(z)
 	{ }
+
 	// Costruisce il box che racchiude strettamente altri due box (unione).
 	AABB(const AABB& box1, const AABB& box2)
 		: x(box1.x, box2.x), y(box1.y, box2.y), z(box1.z, box2.z)
 	{ }
+
+	AABB(const Point3& a, const Point3& b)
+		: x(Interval(std::min(a.x, b.x), std::max(a.x, b.x)).expand(0.0001)), y(Interval(std::min(a.y, b.y), std::max(a.y, b.y)).expand(0.0001)), z(Interval(std::min(a.z, b.z), std::max(a.z, b.z)).expand(0.0001))
+	{
+
+	}
 
 	// Metodo "slab": per ogni asse calcola l'intervallo di t in cui il raggio è dentro quella slab, poi interseca via via con ray_t. Se in un asse qualsiasi l'intervallo risultante collassa (min >= max), il raggio manca il box.
 	bool hit(const Ray& r, Interval ray_t) const

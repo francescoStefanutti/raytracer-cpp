@@ -11,6 +11,8 @@
 #include "material.h"
 #include "bvh.h"
 #include "texture.h"
+#include "quad.h"
+#include "triangle.h"
 
 int main()
 {
@@ -18,7 +20,9 @@ int main()
 
 	auto checkered_texture = std::make_shared<CheckerTexture>(Color{ 0.2, 0.5, 0.9 }, Color{ 0.6, 0.1, 0.2 }, 2);
 	auto world_texture = std::make_shared<ImageTexture>("images/earthmap.jpg");
-	auto noise_texture = std::make_shared<NoiseTexture>(1, NoiseTexture::Mode::Turbolence, 5);
+	auto noise_turb = std::make_shared<NoiseTexture>(1, NoiseTexture::Mode::Turbolence, 5);
+	auto noise_marble = std::make_shared<NoiseTexture>(5, NoiseTexture::Mode::Marble, 7);
+
 
 	auto wood = std::make_shared<Lambertian>(Color{ 0.3,0.2,0.1 });
 	auto checkered = std::make_shared<Lambertian>(checkered_texture);
@@ -27,23 +31,26 @@ int main()
 	auto glass = std::make_shared<Dielectric>(1.5);
 	auto glass_green = std::make_shared<Dielectric>(1.5, Color{0,1,0});
 	auto world_material = std::make_shared<Lambertian>(world_texture);
-	auto noise_material = std::make_shared<Metal>(noise_texture, 0.3);
+	auto noise_turb_material = std::make_shared<Metal>(noise_turb, 0.3);
+	auto noise_marble_material = std::make_shared<Lambertian>(noise_marble);
+
 
 	Hittable_list world;
 	world.reserve(6);
-	world.add(std::make_shared<Sphere>(100, Point3{ 0,-100.5,-1 }, noise_material));
+	world.add(std::make_shared<Sphere>(100, Point3{ 0,-100.5,-1 }, noise_turb_material));
 	world.add(std::make_shared<Sphere>(0.5, Point3{ 0,0,-1 }, world_material));
 	world.add(std::make_shared<Sphere>(0.5, Point3{ -1.5,0,-1 }, glass));
 	world.add(std::make_shared<Sphere>(0.5, Point3{ 1.5,0,-1 }, glass_green));
 	world.add(std::make_shared<Sphere>(0.2, Point3{ 2,0,-2 }, Point3{ 2,0.5,-2 }, wood));
 	world.add(std::make_shared<Sphere>(0.2, Point3{ -2,0,-2 }, Point3{ -2,0.5,-2 }, gold));
-	
+	world.add(std::make_shared<Quad>(Point3{ -2,-0.5,-3 }, Vec3{ 0,1,0 }, Vec3{ 1,0,0 }, copper));
+	world.add(std::make_shared<Triangle>(Point3{-1, 0.5, -1.5}, Vec3{2, 0, 0}, Vec3{1, 1.5, 0}, noise_marble_material));	
 	BVH_node tree(world);
 
 	Camera camera;
 	camera.lookfrom = {-3, 3, 1};
 	camera.vfov = 40.0;
-	camera.defocus_angle = 5.0;
+	camera.defocus_angle = 2.0;
 	camera.focus_dist = (camera.lookfrom - camera.lookat).length(); // distanza giusta per mettere afuoco la palla di rame
 	camera.Render(tree, image);
 }

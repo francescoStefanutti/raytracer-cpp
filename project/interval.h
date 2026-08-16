@@ -34,4 +34,10 @@ public:
 	{
 		return std::clamp(x, min, max);
 	}
+
+	Interval expand(double delta) const
+	{
+		auto d = max - min;
+		return d >= delta ? Interval(min, max) : Interval(min - (delta - d) / 2, max + (delta - d) / 2);
+	}
 };
