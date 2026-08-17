@@ -141,12 +141,14 @@
     <ClInclude Include="hittable_list.h" />
     <ClInclude Include="interval.h" />
     <ClInclude Include="material.h" />
+    <ClInclude Include="matrix.h" />
     <ClInclude Include="perlin.h" />
     <ClInclude Include="quad.h" />
     <ClInclude Include="ray.h" />
     <ClInclude Include="rtw_image.h" />
     <ClInclude Include="sphere.h" />
     <ClInclude Include="texture.h" />
+    <ClInclude Include="transform.h" />
     <ClInclude Include="triangle.h" />
     <ClInclude Include="vec3.h" />
   </ItemGroup>

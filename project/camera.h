@@ -21,7 +21,6 @@ public:
 	double aspect_ratio = 16.0 / 9.0;
 	int image_width = 400;
 
-
 	double vfov = 90.0;
 	double defocus_angle = 0.0; // con zero abbiamo una pinhole camera, valori maggiori comportamento più natural con sfocatura
 	double focus_dist = 1.0;
@@ -37,6 +36,7 @@ public:
 	//Reflection
 	int max_depth = 50;
 
+	Color background{ 0,0,0 }; // colore fisso restituito quando un raggio non colpisce nulla (sostituisce il vecchio skybox)
 
 
 	void Render(const Hittable& world, std::ofstream& image)
@@ -50,8 +50,7 @@ public:
 		// creo vettore in cui scriverà i colori sfruttando multi thread. non posso sfruttare l'ottimizazzione di reserve perchè ogni thread deve andare a scrivere nel vettore a un preciso index quindi ho bisogno che vengano inizializzati dei color come default, anche se vuol dire usare più memoria
 		std::vector<Color> pixels(image_height * image_width);
 
-		// creo un oggetto range, una sequenza virtuale che si comporta come un contenitore, ma senza memorizzare nulla in memoria: genera i numeri 0, 1, 2, ..., image_height-1 al volo, uno alla volta, quando richiesti tramite i suoi iteratori
-		// serve al std::for_each per funzionare
+		// creo un oggetto range, una sequenza virtuale che si comporta come un contenitore, ma senza memorizzare nulla in memoria: genera i numeri 0, 1, 2, ..., image_height-1 al volo, uno alla volta, quando richiesti tramite i suoi iteratori. serve al std::for_each per funzionare
 		auto rows = std::views::iota(0, image_height);
 
 		std::for_each(std::execution::par, rows.begin(), rows.end(), [&](int j)
@@ -93,17 +92,17 @@ public:
 
 
 private:
-	 int image_height;
-	 Point3 pixel00_loc;
-	 Vec3 pixel_delta_u;
-	 Vec3 pixel_delta_v;
+	int image_height;
+	Point3 pixel00_loc;
+	Vec3 pixel_delta_u;
+	Vec3 pixel_delta_v;
 
-	 Vec3 w;
-	 Vec3 u;
-	 Vec3 v;
+	Vec3 w;
+	Vec3 u;
+	Vec3 v;
 
-	 Vec3 defocus_disk_u;
-	 Vec3 defocus_disk_v;
+	Vec3 defocus_disk_u;
+	Vec3 defocus_disk_v;
 
 	void Initialize()
 	{
@@ -122,7 +121,7 @@ private:
 		const auto focal_length = camera_to_target.length();
 		const auto viewport_height = 2 * tan(deg_to_rad(vfov / 2)) * focal_length;
 		const auto viewport_width = static_cast<double>(image_width)/ image_height * viewport_height; // non usiamo l'aspect ratio perchè per calcolare la viewport height perchè l'altezza in pixel di prima è stata arrotondata (essendo un int), quindi il formato reale della nostra immagine non è più esattamente 16:9 al millimetro. Dobbiamo usare l'aspect ratio "reale" ricalcolandolo così: dividi image_width per image_height (ricordati di fare un static_cast<double> su uno dei due, altrimenti il C++ farà una divisione tra interi e perderai i decimali!).
-		
+
 		const Vec3 viewport_u = viewport_width * u;
 		const Vec3 viewport_v = -viewport_height * v;
 
@@ -143,7 +142,7 @@ private:
 	Color ray_color(const Ray& r, const Hittable& objects, int depth)
 	{
 		HitRecord rec;
-		
+
 		// Se abbiamo superato il limite di rimbalzi, la luce si spegne (nero)
 		if (depth <= 0)
 		{
@@ -152,22 +151,19 @@ private:
 
 		if (objects.hit(r, 0.001, 1000.0, rec)) // 0.001 per evitare shadow acne e che succeda che il raggio colpisca l'oggetto stesso una volta riflesso
 		{
-			auto scatter_result = rec.mat->scatter(r, rec);
+			auto scatter_result = rec.mat->scatter(r, rec); // il materiale rimbalza il raggio?
+			auto emitted_result = rec.mat->emitted(rec.u, rec.v, rec.P); // il materiale emette luce propria? (nero per i materiali non luminosi)
 
 			// se l'optional è pieno c'è stata riflessinoe
 			if (scatter_result)
-				// leggi commento sotto
-				return  scatter_result->attenuation * ray_color(scatter_result->scattered, objects, depth - 1); // Il colore finale è viene attuenatuo in base all'albedo della amteriale incontrano quando il raggio rimbalzato
+				// colore finale = luce emessa qui + luce riflessa (attenuata) che arriva dal rimbalzo
+				return  emitted_result + scatter_result->attenuation * ray_color(scatter_result->scattered, objects, depth - 1); // Il colore finale è viene attuenatuo in base all'albedo della amteriale incontrano quando il raggio rimbalzato
 			else
-				return { 0,0,0 }; // se optional vuoto tutto è stato assorbito
+				return emitted_result; // niente rimbalzo (es. una luce): il colore è solo quello emesso, non più forzatamente nero
 		}
 		else
 		{
-			auto unit_direction = unit_vector(r.direction());
-
-			auto a = 0.5 * (unit_direction.y + 1.0);
-
-			return (1.0 - a) * Color { 1.0, 1.0, 1.0 } + a * Color{ 0.5, 0.7, 1.0 };
+			return background; // nessun hit: colore di sfondo fisso, non più calcolato dalla direzione del raggio
 		}
 	}
 
@@ -189,12 +185,28 @@ private:
 // L'oggetto NON ha un colore proprio. Il suo colore dipende dalla luce che il raggio riflesso riesce a catturare.
 // 
 // 1. La chiamata ricorsiva ray_color(...) "mette in pausa" il calcolo, lancia il nuovo raggio 'scattered'
-//    nella scena e aspetta che questo colpisca qualcosa (es. il cielo) per sapere di che colore è la luce in arrivo.
-// 2. Il '0.5' rappresenta l'Albedo (Riflettanza) del materiale. Indica che questa superficie opaca 
-//    assorbe il 50% dell'energia luminosa e riflette il restante 50%.
-// 3. Quando il raggio torna indietro con un colore (es. l'azzurro del cielo), questo viene moltiplicato per 0.5.
-//    Se un raggio rimane incastrato sotto la sfera facendo molti rimbalzi, subirà questa moltiplicazione 
-//    (dimezzando l'energia) a ogni impatto, diventando sempre più scuro e generando ombre ultra-realistiche.
+//    nella scena e aspetta che questo colpisca qualcosa (un'altra superficie, una sorgente di luce, o lo
+//    sfondo fisso 'background') per sapere di che colore è la luce in arrivo.
+// 2. Il '0.5' (nell'esempio storico con lo skybox) rappresentava l'Albedo (Riflettanza) del materiale.
+//    Indica che questa superficie opaca assorbe una parte dell'energia luminosa e riflette il resto.
+// 3. Quando il raggio torna indietro con un colore, questo viene moltiplicato per l'attenuazione del
+//    materiale. Se un raggio rimane incastrato facendo molti rimbalzi, subirà questa moltiplicazione
+//    (perdendo energia) a ogni impatto, diventando sempre più scuro e generando ombre ultra-realistiche.
+//
+// ILLUMINAZIONE CON MATERIALI EMISSIVI (DiffuseLight):
+// Prima, l'unica fonte di luce della scena era lo skybox (un gradiente calcolato dalla direzione del
+// raggio quando non colpiva nulla). Ora lo sfondo è un colore fisso (spesso nero), e la luce nella scena
+// proviene SOLO da oggetti a cui è stato assegnato esplicitamente un materiale emissivo:
+// - emitted(u,v,p): quanta luce propria produce il materiale in quel punto (nero per Lambertian/Metal/
+//   Dielectric, un colore acceso, spesso >1, per DiffuseLight).
+// - scatter(...): il raggio rimbalza da qui? Per una luce, no (restituisce nullopt) -- il percorso del
+//   raggio termina lì, il colore finale è solo l'emissione.
+// Il colore di un punto di hit è quindi: emitted + attenuation * (colore che arriva rimbalzando).
+// Un raggio che, rimbalzando a caso, finisce per colpire una luce "riporta indietro" quel colore acceso
+// lungo tutta la catena di rimbalzi intermedi, ognuno dei quali lo attenua un po' -- esattamente come la
+// luce vera che rimbalza sugli oggetti prima di raggiungere l'occhio/camera. Se invece nessun rimbalzo
+// casuale colpisce mai una luce, quel campione contribuisce con il colore di background (spesso nero):
+// per questo, con luci piccole, serve un numero alto di samples_per_pixel per ottenere un'immagine pulita.
 
 
 

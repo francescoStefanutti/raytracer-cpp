@@ -20,6 +20,11 @@ class Material
 public:
 	virtual std::optional<ScatterResult> scatter(const Ray& r_in, const HitRecord& rec) const = 0;
 
+	virtual Color emitted(double u, double v, const Point3& P) const
+	{
+		return { 0,0,0 };
+	}
+
 	virtual ~Material() = default;
 };
 
@@ -132,6 +137,32 @@ public:
 		return ScatterResult{ albedo, scattered, };
 	}
 
+};
+
+class DiffuseLight : public Material
+{
+	std::shared_ptr<Texture> tex;
+
+public:
+	DiffuseLight(const std::shared_ptr<Texture>& texture)
+		: tex(texture)
+	{ }
+
+	DiffuseLight(Color color)
+		: tex(std::make_shared<SolidColor>(color))
+	{ }
+
+	std::optional<ScatterResult> scatter(const Ray& r_in, const HitRecord& rec) const override
+	{
+		return std::nullopt;
+	}
+
+
+
+	Color emitted(double u, double v, const Point3& P) const override
+	{
+		return tex->value(u,v,P);
+	}
 };
 
 /*
