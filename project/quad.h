@@ -73,6 +73,31 @@ public:
 	}
 };
 
+std::shared_ptr<Hittable> box(const Point3& a, const Point3& b, const std::shared_ptr<Material>& material)
+{
+	auto sides = std::make_shared<Hittable_list>();
+
+	auto dx = b.x - a.x;
+	auto dy = b.y - a.y;
+	auto dz = b.z - a.z;
+
+	// faccia a z minima (a.z): normale verso -z
+	sides->add(std::make_shared<Quad>(a, Vec3{ 0,dy,0 }, Vec3{ dx,0,0 }, material));
+	// faccia a y minima (a.y): normale verso -y
+	sides->add(std::make_shared<Quad>(a, Vec3{ dx,0,0 }, Vec3{ 0,0,dz }, material));
+	// faccia a x minima (a.x): normale verso -x
+	sides->add(std::make_shared<Quad>(a, Vec3{ 0,0,dz }, Vec3{ 0,dy,0 }, material));
+	// faccia a z massima (b.z): normale verso +z
+	sides->add(std::make_shared<Quad>(b, Vec3{ -dx,0,0 }, Vec3{ 0,-dy,0 }, material));
+	// faccia a y massima (b.y): normale verso +y
+	sides->add(std::make_shared<Quad>(b, Vec3{ 0,0,-dz }, Vec3{ -dx,0,0 }, material));
+	// faccia a x massima (b.x): normale verso +x
+	sides->add(std::make_shared<Quad>(b, Vec3{ 0,-dy,0 }, Vec3{ 0,0,-dz }, material));
+
+	return sides;
+}
+
+
 /*
 * RIEPILOGO DEL FILE
 *

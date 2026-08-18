@@ -15,10 +15,15 @@
 #include "triangle.h"
 #include "matrix.h"
 #include "transform.h"
+#include "costant_medium.h"
 
 int main()
 {
 	std::ofstream image("image.ppm");
+
+	// BOUNDARY
+	auto white = std::make_shared<Lambertian>(Color{1,1,1});
+	auto boundary_volume = box({ -0.7, -0.5, 1.0 }, { 0.7, 0.7, 2.0 }, white);
 
 	// --- TEXTURE ---
 	auto checkered_texture = std::make_shared<CheckerTexture>(Color{ 0.2, 0.5, 0.9 }, Color{ 0.6, 0.1, 0.2 }, 1.0);
@@ -40,7 +45,7 @@ int main()
 	auto bouncing_magenta = std::make_shared<Metal>(Color{ 0.9,0.2,0.9 }, 0.1);
 
 	Hittable_list world;
-	world.reserve(12);
+	world.reserve(13);
 
 	// Terreno: sfera enorme, a scacchi
 	world.add(std::make_shared<Sphere>(1000, Point3{ 0,-1000.5,-1 }, ground_material));
@@ -55,7 +60,7 @@ int main()
 	// Sfera con noise marble, leggermente arretrata
 	world.add(std::make_shared<Sphere>(0.6, Point3{ 0,0.1,-2.5 }, noise_marble_material));
 
-	// Quad verticale con Metal, come parete laterale di sfondo (a destra, non sovrapposto)
+	// Quad verticale con Metal, ruotato intorno alla propria asse y usando trasformazioni
 	auto quad_original = std::make_shared<Quad>(Point3{ 4.5,-0.5,-3 }, Vec3{ 0,2,0 }, Vec3{ 1.5,0,1 }, copper);
 	Point3 center_quad{5.25, 0.5, -2.5};
 	auto matrix = RigidTransform::translation(center_quad) * RigidTransform::rotation(0,90,0) * RigidTransform::translation(-center_quad);
@@ -70,6 +75,9 @@ int main()
 	// Due sfere in movimento (motion blur): centro dinamico, spostamento piccolo e verticale.
 	world.add(std::make_shared<Sphere>(0.3, Point3{ -3.8,0.3,0.3 }, Point3{ -3.8,0.6,0.3 }, bouncing_yellow));
 	world.add(std::make_shared<Sphere>(0.3, Point3{ 3.8,0.3,0.3 }, Point3{ 3.8,0.6,0.3 }, bouncing_magenta));
+
+	// Volume di gas
+	world.add(std::make_shared<ConstantMedium>(boundary_volume, 2, Color{ 0.2, 0.5, 0.7 }));
 
 	BVH_node tree(world);
 

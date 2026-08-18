@@ -165,6 +165,33 @@ public:
 	}
 };
 
+
+class Isotropic : public Material
+{
+	std::shared_ptr<Texture> tex;
+
+public:
+	Isotropic(std::shared_ptr<Texture> texture)
+		: tex(texture)
+	{ }
+
+	Isotropic(Color constant)
+		: tex(std::make_shared<SolidColor>(constant))
+	{ }
+
+	std::optional<ScatterResult> scatter(const Ray& r_in, const HitRecord& rec) const override
+	{
+		//  Calcolo la direzione del rimbalzo casuale
+		Vec3 direction = random_unit_vector(); 		
+		Ray scattered(rec.P, direction, r_in.time());
+
+		auto albedo = tex->value(rec.u, rec.v, rec.P);
+
+		return ScatterResult{ albedo, scattered };
+	}
+
+};
+
 /*
 * ==========================================
 * APPUNTI DA SENIOR DEV: STATIC SU UN METODO DI CLASSE

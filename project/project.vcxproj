@@ -135,6 +135,7 @@
     <ClInclude Include="bvh.h" />
     <ClInclude Include="camera.h" />
     <ClInclude Include="color.h" />
+    <ClInclude Include="costant_medium.h" />
     <ClInclude Include="essentials.h" />
     <ClInclude Include="external\stb_image.h" />
     <ClInclude Include="hittable.h" />
