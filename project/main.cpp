@@ -14,7 +14,8 @@
 #include "quad.h"
 #include "triangle.h"
 #include "matrix.h"
-#include "transform.h"
+#include "rigid_transform.h"
+#include "general_transform.h"
 #include "constant_medium.h"
 
 int main()
@@ -64,14 +65,16 @@ int main()
 		// Sfera con noise marble, leggermente arretrata
 		world.add(std::make_shared<Sphere>(0.6, Point3{ 0,0.1,-2.5 }, noise_marble_material));
 
-		// Quad verticale con Metal, ruotato intorno alla propria asse y usando trasformazioni
+		// Quad verticale con Metal, ruotato intorno alla propria asse y usando rigidtransform
 		auto quad_original = std::make_shared<Quad>(Point3{ 4.5,-0.5,-3 }, Vec3{ 0,2,0 }, Vec3{ 1.5,0,1 }, copper);
 		Point3 center_quad{ 5.25, 0.5, -2.5 };
-		auto matrix = RigidTransform::translation(center_quad) * RigidTransform::rotation(0, 90, 0) * RigidTransform::translation(-center_quad);
-		world.add(std::make_shared<Transform>(quad_original, matrix));
+		auto transf_quad = RigidMatrix::translation(center_quad) * RigidMatrix::rotation(0, 90, 0) * RigidMatrix::translation(-center_quad);
+		world.add(std::make_shared<RigidTransform>(quad_original, transf_quad));
 
-		// Triangolo con noise turbulence (metallico), a sinistra, ben visibile
-		world.add(std::make_shared<Triangle>(Point3{ -4.5,0,-2 }, Vec3{ 2,0,0 }, Vec3{ 1,2,0 }, noise_turb_material));
+		// Triangolo con noise turbulence (metallico), a sinistra, transformato con general transform
+		auto triangle_original = std::make_shared<Triangle>(Point3{ -3.5,0,-3 }, Vec3{ 2,0,0 }, Vec3{ 1,2,0 }, noise_turb_material);
+		auto trasnf_triangle = GeneralMatrix::rotation(0, 30, 0) * GeneralMatrix::scale(1, 2, 1);
+		world.add(std::make_shared<GeneralTransform>(triangle_original, trasnf_triangle));
 
 		// Luce: pannello grande sopra tutta la scena
 		world.add(std::make_shared<Quad>(Point3{ -2,3,-3 }, Vec3{ 4,0,0 }, Vec3{ 0,0,4 }, light_material));

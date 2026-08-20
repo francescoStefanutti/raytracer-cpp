@@ -139,6 +139,7 @@
     <ClInclude Include="essentials.h" />
     <ClInclude Include="external\stb_image.h" />
     <ClInclude Include="external\stb_image_write.h" />
+    <ClInclude Include="general_transform.h" />
     <ClInclude Include="hittable.h" />
     <ClInclude Include="hittable_list.h" />
     <ClInclude Include="interval.h" />
@@ -150,7 +151,7 @@
     <ClInclude Include="rtw_image.h" />
     <ClInclude Include="sphere.h" />
     <ClInclude Include="texture.h" />
-    <ClInclude Include="transform.h" />
+    <ClInclude Include="rigid_transform.h" />
     <ClInclude Include="triangle.h" />
     <ClInclude Include="vec3.h" />
   </ItemGroup>

@@ -78,9 +78,10 @@ public:
 				}
 			});
 
-		// dopo avere riempito il mio array, ora lo scorro e ogni colore lo stampo applicando le correzioni
+		// buffer binario per il PNG: 3 byte (R,G,B) per pixel, riempito nel loop sotto e scritto su disco una sola volta a fine funzione
 		std::vector<unsigned char> color_list(image_height * image_width * 3);
-		
+
+		// dopo avere riempito il mio array, ora lo scorro e ogni colore lo stampo applicando le correzioni
 		for (int j = 0; j < image_height; j++)
 		{
 			std::clog << "\rRighe rimanenti: "<< image_height - j << ' ' << std::flush; // leggi commento sotto
@@ -88,13 +89,14 @@ public:
 			for (int i = 0; i <= image_width - 1; i++)
 			{
 				auto index = j * image_width + i;
-				auto colors = calculate_color(pixels[index], samples_per_pixel);
-				
-				write_color_ppm(image, colors);
-				write_color_png(colors, color_list, index * 3);
+				auto colors = calculate_color(pixels[index], samples_per_pixel); // calcolo (scale/gamma/clamp) fatto una sola volta, condiviso da entrambi gli output
+
+				write_color_ppm(image, colors); // scrittura incrementale, testo, direttamente sullo stream .ppm
+				write_color_png(colors, color_list, index * 3); // scrittura nel buffer .png, *3 perchè ogni pixel occupa 3 celle consecutive
 			}
 		}
 
+		// scrittura del file .png in un colpo solo: il formato è compresso, serve l'immagine intera in memoria (a differenza del .ppm scritto in streaming sopra)
 		stbi_write_png(png_filename.c_str(), image_width, image_height , 3, color_list.data(), image_width * 3);
 
 		std::clog << "\rFatto					   \n";
@@ -238,6 +240,26 @@ private:
 // 2) std::for_each(std::execution::par, ...) è bloccante: quando la chiamata
 //    ritorna, TUTTI i thread hanno finito e "pixels" è completamente riempito.
 // 3) Solo a quel punto un ciclo sequenziale (un solo thread, nessun rischio di
-//    race condition) scorre "pixels" in ordine e applica write_color() -- che fa
-//    scaling per samples_per_pixel, gamma correction e clamp -- scrivendo il
-//    risultato finale nel file, sempre nell'ordine corretto riga per riga.
+//    race condition) scorre "pixels" in ordine e applica calculate_color() +
+//    write_color_ppm()/write_color_png() -- che fanno scaling per samples_per_pixel,
+//    gamma correction e clamp, poi smistano lo stesso risultato verso i due file di
+//    output -- scrivendo il risultato finale sempre nell'ordine corretto riga per riga.
+
+
+// OUTPUT DOPPIO: PPM (streaming, testo) + PNG (buffer in memoria, binario compresso)
+//
+// I due formati hanno requisiti opposti sul MOMENTO in cui si può scrivere:
+// - .ppm (P3) è testo semplice, non compresso: ogni pixel può essere scritto sullo
+//   stream non appena calcolato, riga per riga, senza bisogno di vedere il resto
+//   dell'immagine. Per questo write_color_ppm scrive direttamente dentro il loop.
+// - .png è un formato binario compresso (DEFLATE, lo stesso algoritmo dello zip):
+//   l'encoder ha bisogno dell'immagine intera in memoria per comprimerla bene, quindi
+//   non si può scrivere in streaming pixel per pixel. Per questo color_list accumula
+//   tutti i byte durante il loop, e stbi_write_png viene chiamata una sola volta,
+//   a loop terminato, quando il buffer è completamente pieno.
+//
+// In entrambi i casi il colore (calculate_color) viene calcolato UNA SOLA VOLTA per
+// pixel: le due funzioni write_color_ppm/write_color_png non ricalcolano nulla, si
+// limitano a smistare lo stesso risultato RGB verso una destinazione diversa (stream
+// di testo vs cella di un vector di byte), evitando di duplicare la logica di
+// gamma correction/clamp in due punti del codice.

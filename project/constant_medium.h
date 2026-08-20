@@ -16,12 +16,16 @@ public:
 	// Overload con Texture: costruisce l'Isotropic internamente, incapsulando il dettaglio implementativo
 	ConstantMedium(std::shared_ptr<Hittable> obj, double density, const std::shared_ptr<Texture>& tex)
 		: object(std::move(obj)),  bbox(object->bounding_box()), inv_neg_density(-1/density), mat(std::make_shared<Isotropic>(tex))
-	{ }
+	{ 
+		assert(density > 0 && "ConstantMedium: density deve essere positiva");
+	}
 	
 	// Overload con Color grezzo: stessa idea, comodità per un colore uniforme
 	ConstantMedium(std::shared_ptr<Hittable> obj, double density, Color color)
 		: object(std::move(obj)),  bbox(object->bounding_box()), inv_neg_density(-1/density), mat(std::make_shared<Isotropic>(color))
-	{ }
+	{ 
+		assert(density > 0 && "ConstantMedium: density deve essere positiva");
+	}
 
 	bool hit(const Ray& ray, double tmin, double tmax, HitRecord& rec) const override
 	{

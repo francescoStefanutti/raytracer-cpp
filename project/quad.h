@@ -20,7 +20,9 @@ class Quad : public Hittable
 public:
 	Quad(const Point3& Q, Vec3 u, Vec3 v, std::shared_ptr<Material> material)
 		: Q(Q), u(u), v(v), material(std::move(material)), n(cross(u, v)), w_aux(n / dot(n, n)), D(dot(n, Q)), bbox({ AABB{Q, Q + u + v}, AABB{Q + u, Q + v} }) // unione dei box sulle due diagonali, calcolata una sola volta qui
-	{ }
+	{ 
+		assert(dot(n, n) > 1e-12 && "Quad: u e v paralleli, quad degenere");
+	}
 
 	bool hit(const Ray& ray, double tmin, double tmax, HitRecord& rec) const override
 	{

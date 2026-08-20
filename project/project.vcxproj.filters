@@ -83,7 +83,7 @@
     <ClInclude Include="matrix.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="transform.h">
+    <ClInclude Include="rigid_transform.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="constant_medium.h">
@@ -91,6 +91,9 @@
     </ClInclude>
     <ClInclude Include="external\stb_image_write.h">
       <Filter>external</Filter>
+    </ClInclude>
+    <ClInclude Include="general_transform.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

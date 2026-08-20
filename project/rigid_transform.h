@@ -4,7 +4,7 @@
 #include "hittable.h"
 #include "matrix.h"
 
-class Transform : public Hittable
+class RigidTransform : public Hittable
 {
 	std::shared_ptr<Hittable> object; // oggetto originale, non modificato: viene sempre testato nel suo spazio locale
 	Matrix4x4 M; // matrice diretta: spazio locale -> spazio mondo
@@ -12,7 +12,7 @@ class Transform : public Hittable
 	AABB bbox; // bbox in spazio mondo, cachata una sola volta nel costruttoreù
 
 public:
-	Transform(std::shared_ptr<Hittable> obj, RigidTransform matrix)
+	RigidTransform(std::shared_ptr<Hittable> obj, RigidMatrix matrix)
 		: object(std::move(obj)), M(matrix.forward), M_inversed(matrix.inverse)
 	{
 		auto object_bbox = object->bounding_box(); // bbox originale, ancora in spazio locale
@@ -73,9 +73,9 @@ public:
 
 /*
 * ==========================================
-* COME FUNZIONA Transform
+* COME FUNZIONA RigidTransform
 * ==========================================
-* Transform avvolge un Hittable esistente (object) e gli applica una trasformazione
+* RigidTransform avvolge un Hittable esistente (object) e gli applica una trasformazione
 * rigida (rotazione + traslazione, niente scaling) senza dover modificare l'oggetto
 * originale, che resta invariato e continua a "vivere" nel proprio spazio locale.
 *
@@ -91,8 +91,8 @@ public:
 * un orientamento (transform_vector). Per questo l'origine del raggio e la
 * direzione usano due metodi diversi, così come rec.P (punto) e rec.n (vettore).
 *
-* RigidTransform (definita in matrix.h) tiene sempre M e M_inversed accoppiate
-* e coerenti tra loro, così chi usa Transform non deve mai calcolare l'inversa
+* RigidMatrix (definita in matrix.h) tiene sempre M e M_inversed accoppiate
+* e coerenti tra loro, così chi usa RigidTransform non deve mai calcolare l'inversa
 * a mano: la fabbrica statica (translation/rotation) o la composizione (operator*)
 * la calcolano automaticamente nell'ordine e con i segni corretti.
 * ==========================================
