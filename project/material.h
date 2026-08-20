@@ -20,7 +20,7 @@ class Material
 public:
 	virtual std::optional<ScatterResult> scatter(const Ray& r_in, const HitRecord& rec) const = 0;
 
-	virtual Color emitted(double u, double v, const Point3& P) const
+	virtual Color emitted(double u, double v, const Point3& P, bool front_face) const
 	{
 		return { 0,0,0 };
 	}
@@ -34,7 +34,7 @@ class Lambertian : public Material
 
 public:
 	Lambertian(std::shared_ptr<Texture> texture)
-		: tex(texture)
+		: tex(std::move(texture))
 	{ }
 
 	Lambertian(Color constant)
@@ -62,7 +62,7 @@ class Metal : public Material
 
 public:
 	Metal(std::shared_ptr<Texture> texture, double fuzz)
-		: tex(texture), fuzz(std::clamp(fuzz,0.0,1.0))
+		: tex(std::move(texture)), fuzz(std::clamp(fuzz,0.0,1.0))
 	{ }
 
 	Metal(Color constant, double fuzz)
@@ -102,7 +102,7 @@ class Dielectric : public Material
 
 public:
 	Dielectric(double ir, std::shared_ptr<Texture> texture)
-		:ir(ir), tex(texture)
+		:ir(ir), tex(std::move(texture))
 	{ }
 
 	Dielectric(double ir)
@@ -144,8 +144,8 @@ class DiffuseLight : public Material
 	std::shared_ptr<Texture> tex;
 
 public:
-	DiffuseLight(const std::shared_ptr<Texture>& texture)
-		: tex(texture)
+	DiffuseLight(std::shared_ptr<Texture> texture)
+		: tex(std::move(texture))
 	{ }
 
 	DiffuseLight(Color color)
@@ -159,8 +159,11 @@ public:
 
 
 
-	Color emitted(double u, double v, const Point3& P) const override
+	Color emitted(double u, double v, const Point3& P, bool front_face) const override
 	{
+		if (!front_face)
+			return { 0,0,0 };
+
 		return tex->value(u,v,P);
 	}
 };
@@ -172,7 +175,7 @@ class Isotropic : public Material
 
 public:
 	Isotropic(std::shared_ptr<Texture> texture)
-		: tex(texture)
+		: tex(std::move(texture))
 	{ }
 
 	Isotropic(Color constant)

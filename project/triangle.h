@@ -13,7 +13,7 @@ class Triangle : public Quad
 
 public:
 	Triangle(const Point3& Q, Vec3 u, Vec3 v, std::shared_ptr<Material> material)
-		:Quad(Q,u,v,material)
+		:Quad(Q,u,v, std::move(material))
 	{ }
 
 	bool is_interior(double alfa, double beta, HitRecord& rec) const override

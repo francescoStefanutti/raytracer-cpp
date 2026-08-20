@@ -6,6 +6,7 @@
 #include <memory>
 #include <cmath>
 #include <algorithm>
+#include <cassert>
 
 // Interfaccia astratta: ogni texture concreta sa dire "che colore ha in (u,v,p)"
 class Texture
@@ -55,7 +56,7 @@ public:
 	Color value(double u, double v, Point3 p) const override
 	{
 		auto p_scaled = p / scale; // riscala lo spazio in unità di "celle"
-		// somma dei tre indici di cella, pari/dispari decide even/odd
+		// somma dei tre indici di cella, pari/dispari decide even/odd (% può dare negativo, ma qui conta solo zero/non-zero: vedi APPUNTI)
 		return int(floor(p_scaled.x) + floor(p_scaled.y) + floor(p_scaled.z)) % 2 ? odd->value(u, v, p) : even->value(u, v, p);
 	}
 };
@@ -92,7 +93,7 @@ class NoiseTexture : public Texture
 public:
 	enum class Mode
 	{
-		Smooth, Turbolence, Marble
+		Smooth, Turbulence, Marble
 	};
 
 private:
@@ -115,14 +116,18 @@ public:
 		case Mode::Smooth:
 			grey_value = 0.5 * (perlin.noise_smooth_gradient(p * scale) + 1.0);
 			break;
-		
-		case Mode::Turbolence:
-			grey_value = perlin.turbolence(p * scale, depth);
+
+		case Mode::Turbulence:
+			grey_value = perlin.turbulence(p * scale, depth);
 			break;
 
 		case Mode::Marble:
-			grey_value = 0.5*(1 + sin(scale * p.z + 10 * perlin.turbolence(p, depth)));
+			grey_value = 0.5 * (1 + sin(scale * p.z + 10 * perlin.turbulence(p, depth)));
 			break;
+
+		default:
+			assert(false && "NoiseTexture::Mode non gestito in value()");
+			grey_value = 0.0;
 		}
 
 		return { grey_value, grey_value, grey_value };
@@ -159,3 +164,15 @@ public:
 * solo il puntatore condiviso, non i dati dell'immagine).
 */
 
+/* APPUNTI — modulo su coordinate negative in CheckerTexture::value
+*
+* In C++ l'operatore % sugli interi segue il segno del dividendo: -1 % 2 vale -1,
+* non 1 (a differenza della divisione modulo "matematica"). Per una cella con indice
+* negativo questo darebbe un numero diverso da quello che ci si aspetterebbe pensando
+* al modulo in senso puramente matematico.
+*
+* Non è un bug qui: il risultato del % viene usato solo come condizione booleana
+* (? :), e sia i valori positivi che negativi diversi da zero sono ugualmente "true".
+* Il pattern a scacchiera resta quindi corretto anche con coordinate negative -- il
+* segno del risultato è irrilevante per come viene usato.
+*/

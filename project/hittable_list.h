@@ -46,7 +46,7 @@ public:
 		bool hit_anything = false;
 		double closest_so_far = tmax;
 
-		for (const auto object : objects)
+		for (const auto& object : objects)
 		{
 			if (object->hit(ray, tmin, closest_so_far, temp_rec) == false)
 				continue;

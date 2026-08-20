@@ -2,7 +2,7 @@
 #include <fstream>
 #include <cmath>
 #include <memory>
-#include "Vec3.h"
+#include "vec3.h"
 #include "color.h"
 #include "ray.h"
 #include "sphere.h"
@@ -15,71 +15,81 @@
 #include "triangle.h"
 #include "matrix.h"
 #include "transform.h"
-#include "costant_medium.h"
+#include "constant_medium.h"
 
 int main()
 {
 	std::ofstream image("image.ppm");
 
-	// BOUNDARY
-	auto white = std::make_shared<Lambertian>(Color{1,1,1});
-	auto boundary_volume = box({ -0.7, -0.5, 1.0 }, { 0.7, 0.7, 2.0 }, white);
+	std::unique_ptr<BVH_node> tree;
 
-	// --- TEXTURE ---
-	auto checkered_texture = std::make_shared<CheckerTexture>(Color{ 0.2, 0.5, 0.9 }, Color{ 0.6, 0.1, 0.2 }, 1.0);
-	auto world_texture = std::make_shared<ImageTexture>("images/earthmap.jpg");
-	auto noise_turb = std::make_shared<NoiseTexture>(4, NoiseTexture::Mode::Turbolence, 5);
-	auto noise_marble = std::make_shared<NoiseTexture>(5, NoiseTexture::Mode::Marble, 7);
+	try
+	{
+		// BOUNDARY
+		auto white = std::make_shared<Lambertian>(Color{ 1,1,1 });
+		auto boundary_volume = box({ -0.7, -0.5, 1.0 }, { 0.7, 0.7, 2.0 }, white);
 
-	// --- MATERIALI ---
-	auto ground_material = std::make_shared<Lambertian>(checkered_texture);
-	auto earth_material = std::make_shared<Lambertian>(world_texture);
-	auto glass = std::make_shared<Dielectric>(1.5);
-	auto glass_green = std::make_shared<Dielectric>(1.5, Color{ 0,1,0 });
-	auto gold = std::make_shared<Metal>(Color{ 1.0,0.8,0.2 }, 0.1);
-	auto copper = std::make_shared<Metal>(Color{ 0.7,0.4,0.2 }, 0.5);
-	auto noise_marble_material = std::make_shared<Lambertian>(noise_marble);
-	auto noise_turb_material = std::make_shared<Metal>(noise_turb, 0.3);
-	auto light_material = std::make_shared<DiffuseLight>(Color{ 4,4,4 });
-	auto bouncing_yellow = std::make_shared<Lambertian>(Color{ 0.9,0.9,0.05 });
-	auto bouncing_magenta = std::make_shared<Metal>(Color{ 0.9,0.2,0.9 }, 0.1);
+		// --- TEXTURE ---
+		auto checkered_texture = std::make_shared<CheckerTexture>(Color{ 0.2, 0.5, 0.9 }, Color{ 0.6, 0.1, 0.2 }, 1.0);
+		auto world_texture = std::make_shared<ImageTexture>("images/earthmap.jpg");
+		auto noise_turb = std::make_shared<NoiseTexture>(4, NoiseTexture::Mode::Turbulence, 5);
+		auto noise_marble = std::make_shared<NoiseTexture>(5, NoiseTexture::Mode::Marble, 7);
 
-	Hittable_list world;
-	world.reserve(13);
+		// --- MATERIALI ---
+		auto ground_material = std::make_shared<Lambertian>(checkered_texture);
+		auto earth_material = std::make_shared<Lambertian>(world_texture);
+		auto glass = std::make_shared<Dielectric>(1.5);
+		auto glass_green = std::make_shared<Dielectric>(1.5, Color{ 0,1,0 });
+		auto gold = std::make_shared<Metal>(Color{ 1.0,0.8,0.2 }, 0.1);
+		auto copper = std::make_shared<Metal>(Color{ 0.7,0.4,0.2 }, 0.5);
+		auto noise_marble_material = std::make_shared<Lambertian>(noise_marble);
+		auto noise_turb_material = std::make_shared<Metal>(noise_turb, 0.3);
+		auto light_material = std::make_shared<DiffuseLight>(Color{ 4,4,4 });
+		auto bouncing_yellow = std::make_shared<Lambertian>(Color{ 0.9,0.9,0.05 });
+		auto bouncing_magenta = std::make_shared<Metal>(Color{ 0.9,0.2,0.9 }, 0.1);
 
-	// Terreno: sfera enorme, a scacchi
-	world.add(std::make_shared<Sphere>(1000, Point3{ 0,-1000.5,-1 }, ground_material));
+		Hittable_list world;
+		world.reserve(13);
 
-	// Fila di sfere in primo piano, spaziate lungo x, stessa profondità z=-1
-	world.add(std::make_shared<Sphere>(0.5, Point3{ -3,0,-1 }, earth_material));
-	world.add(std::make_shared<Sphere>(0.5, Point3{ -1.5,0,-1 }, glass));
-	world.add(std::make_shared<Sphere>(0.5, Point3{ 0,0,-1 }, glass_green));
-	world.add(std::make_shared<Sphere>(0.5, Point3{ 1.5,0,-1 }, gold));
-	world.add(std::make_shared<Sphere>(0.5, Point3{ 3,0,-1 }, copper));
+		// Terreno: sfera enorme, a scacchi
+		world.add(std::make_shared<Sphere>(1000, Point3{ 0,-1000.5,-1 }, ground_material));
 
-	// Sfera con noise marble, leggermente arretrata
-	world.add(std::make_shared<Sphere>(0.6, Point3{ 0,0.1,-2.5 }, noise_marble_material));
+		// Fila di sfere in primo piano, spaziate lungo x, stessa profondità z=-1
+		world.add(std::make_shared<Sphere>(0.5, Point3{ -3,0,-1 }, earth_material));
+		world.add(std::make_shared<Sphere>(0.5, Point3{ -1.5,0,-1 }, glass));
+		world.add(std::make_shared<Sphere>(0.5, Point3{ 0,0,-1 }, glass_green));
+		world.add(std::make_shared<Sphere>(0.5, Point3{ 1.5,0,-1 }, gold));
+		world.add(std::make_shared<Sphere>(0.5, Point3{ 3,0,-1 }, copper));
 
-	// Quad verticale con Metal, ruotato intorno alla propria asse y usando trasformazioni
-	auto quad_original = std::make_shared<Quad>(Point3{ 4.5,-0.5,-3 }, Vec3{ 0,2,0 }, Vec3{ 1.5,0,1 }, copper);
-	Point3 center_quad{5.25, 0.5, -2.5};
-	auto matrix = RigidTransform::translation(center_quad) * RigidTransform::rotation(0,90,0) * RigidTransform::translation(-center_quad);
-	world.add(std::make_shared<Transform>(quad_original,matrix));
+		// Sfera con noise marble, leggermente arretrata
+		world.add(std::make_shared<Sphere>(0.6, Point3{ 0,0.1,-2.5 }, noise_marble_material));
 
-	// Triangolo con noise turbolence (metallico), a sinistra, ben visibile
-	world.add(std::make_shared<Triangle>(Point3{ -4.5,0,-2 }, Vec3{ 2,0,0 }, Vec3{ 1,2,0 }, noise_turb_material));
+		// Quad verticale con Metal, ruotato intorno alla propria asse y usando trasformazioni
+		auto quad_original = std::make_shared<Quad>(Point3{ 4.5,-0.5,-3 }, Vec3{ 0,2,0 }, Vec3{ 1.5,0,1 }, copper);
+		Point3 center_quad{ 5.25, 0.5, -2.5 };
+		auto matrix = RigidTransform::translation(center_quad) * RigidTransform::rotation(0, 90, 0) * RigidTransform::translation(-center_quad);
+		world.add(std::make_shared<Transform>(quad_original, matrix));
 
-	// Luce: pannello grande sopra tutta la scena
-	world.add(std::make_shared<Quad>(Point3{ -2,3,-3 }, Vec3{ 4,0,0 }, Vec3{ 0,0,4 }, light_material));
+		// Triangolo con noise turbulence (metallico), a sinistra, ben visibile
+		world.add(std::make_shared<Triangle>(Point3{ -4.5,0,-2 }, Vec3{ 2,0,0 }, Vec3{ 1,2,0 }, noise_turb_material));
 
-	// Due sfere in movimento (motion blur): centro dinamico, spostamento piccolo e verticale.
-	world.add(std::make_shared<Sphere>(0.3, Point3{ -3.8,0.3,0.3 }, Point3{ -3.8,0.6,0.3 }, bouncing_yellow));
-	world.add(std::make_shared<Sphere>(0.3, Point3{ 3.8,0.3,0.3 }, Point3{ 3.8,0.6,0.3 }, bouncing_magenta));
+		// Luce: pannello grande sopra tutta la scena
+		world.add(std::make_shared<Quad>(Point3{ -2,3,-3 }, Vec3{ 4,0,0 }, Vec3{ 0,0,4 }, light_material));
 
-	// Volume di gas
-	world.add(std::make_shared<ConstantMedium>(boundary_volume, 2, Color{ 0.2, 0.5, 0.7 }));
+		// Due sfere in movimento (motion blur): centro dinamico, spostamento piccolo e verticale.
+		world.add(std::make_shared<Sphere>(0.3, Point3{ -3.8,0.3,0.3 }, Point3{ -3.8,0.6,0.3 }, bouncing_yellow));
+		world.add(std::make_shared<Sphere>(0.3, Point3{ 3.8,0.3,0.3 }, Point3{ 3.8,0.6,0.3 }, bouncing_magenta));
 
-	BVH_node tree(world);
+		// Volume di gas
+		world.add(std::make_shared<ConstantMedium>(boundary_volume, 2, Color{ 0.2, 0.5, 0.7 }));
+
+		tree=  std::make_unique<BVH_node>(world);
+	}
+	catch (const std::runtime_error& e)
+	{
+		std::cerr << e.what() << std::endl;
+		return 1;
+	}
 
 	Camera camera;
 	camera.background = { 0.05, 0.05, 0.08 }; // sfondo scuro ma non nero puro, per far risaltare la luce
@@ -94,7 +104,7 @@ int main()
 	camera.defocus_angle = 0.6;
 	camera.focus_dist = (camera.lookfrom - camera.lookat).length();
 
-	camera.Render(tree, image);
+	camera.Render(*tree, image, "output.png");
 }
 
 /*

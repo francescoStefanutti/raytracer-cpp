@@ -86,8 +86,11 @@
     <ClInclude Include="transform.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="costant_medium.h">
+    <ClInclude Include="constant_medium.h">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="external\stb_image_write.h">
+      <Filter>external</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

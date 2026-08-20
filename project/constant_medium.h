@@ -14,13 +14,13 @@ class ConstantMedium : public Hittable
 
 public:
 	// Overload con Texture: costruisce l'Isotropic internamente, incapsulando il dettaglio implementativo
-	ConstantMedium(const std::shared_ptr<Hittable>& object, double density, const std::shared_ptr<Texture>& tex)
-		: object(object),  bbox(object->bounding_box()), inv_neg_density(-1/density), mat(std::make_shared<Isotropic>(tex))
+	ConstantMedium(std::shared_ptr<Hittable> obj, double density, const std::shared_ptr<Texture>& tex)
+		: object(std::move(obj)),  bbox(object->bounding_box()), inv_neg_density(-1/density), mat(std::make_shared<Isotropic>(tex))
 	{ }
 	
 	// Overload con Color grezzo: stessa idea, comodità per un colore uniforme
-	ConstantMedium(const std::shared_ptr<Hittable>& object, double density, Color color)
-		: object(object),  bbox(object->bounding_box()), inv_neg_density(-1/density), mat(std::make_shared<Isotropic>(color))
+	ConstantMedium(std::shared_ptr<Hittable> obj, double density, Color color)
+		: object(std::move(obj)),  bbox(object->bounding_box()), inv_neg_density(-1/density), mat(std::make_shared<Isotropic>(color))
 	{ }
 
 	bool hit(const Ray& ray, double tmin, double tmax, HitRecord& rec) const override

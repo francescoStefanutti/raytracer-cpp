@@ -19,7 +19,7 @@ class Quad : public Hittable
 
 public:
 	Quad(const Point3& Q, Vec3 u, Vec3 v, std::shared_ptr<Material> material)
-		: Q(Q), u(u), v(v), material(material), n(cross(u, v)), w_aux(n / dot(n, n)), D(dot(n, Q)), bbox({ AABB{Q, Q + u + v}, AABB{Q + u, Q + v} }) // unione dei box sulle due diagonali, calcolata una sola volta qui
+		: Q(Q), u(u), v(v), material(std::move(material)), n(cross(u, v)), w_aux(n / dot(n, n)), D(dot(n, Q)), bbox({ AABB{Q, Q + u + v}, AABB{Q + u, Q + v} }) // unione dei box sulle due diagonali, calcolata una sola volta qui
 	{ }
 
 	bool hit(const Ray& ray, double tmin, double tmax, HitRecord& rec) const override
@@ -73,7 +73,7 @@ public:
 	}
 };
 
-std::shared_ptr<Hittable> box(const Point3& a, const Point3& b, const std::shared_ptr<Material>& material)
+inline std::shared_ptr<Hittable> box(const Point3& a, const Point3& b, const std::shared_ptr<Material>& material)
 {
 	auto sides = std::make_shared<Hittable_list>();
 

@@ -31,12 +31,25 @@ public:
 		for (int i = 0; i<3; i++ )
 		{
 			const Interval& axis = axis_interval(i);
+
+			// Raggio parallelo a questo asse: niente slab da attraversare, va gestito senza dividere (vedi APPUNTI in fondo).
+			if (r.direction()[i] == 0)
+			{
+				if (r.origin()[i] <= axis.max && r.origin()[i] >= axis.min )
+					continue;
+				else
+					return false;
+			}
+			
 			auto t0 = (axis.min - r.origin()[i]) / r.direction()[i];
 			auto t1 = (axis.max - r.origin()[i]) / r.direction()[i];
+			
 			auto t_in = std::min(t0, t1);
 			auto t_out = std::max(t0, t1);
+
 			ray_t.min = t_in > ray_t.min ? t_in : ray_t.min; // troviamo il massimo di tutti i minimi
 			ray_t.max = t_out < ray_t.max ? t_out : ray_t.max; // troviamo il minimo di tutti i massimi
+			
 			if (ray_t.min >= ray_t.max)
 				return false;
 		}
@@ -66,3 +79,22 @@ public:
 				return 2; // y vince su x, ma z vince su y
 	}
 };
+
+
+/* APPUNTI — gestione raggi paralleli agli assi in AABB::hit
+*
+* La formula slab standard (t = (piano - origine) / direzione) assume che il raggio
+* attraversi ogni slab in un punto preciso. Se direction[i] == 0, il raggio non si
+* muove affatto su quell'asse: la domanda "a che t raggiunge il piano" non ha una
+* risposta finita, e la divisione produrrebbe +-inf (innocuo, si ordina correttamente)
+* o, nel caso limite in cui anche l'origine coincide esattamente col piano, NaN (0/0).
+*
+* NaN è pericoloso perché ogni confronto che lo coinvolge (<, >, <=, >=, ==) restituisce
+* sempre false: l'intervallo [ray_t.min, ray_t.max] potrebbe non collassare mai su
+* quell'asse, facendo risultare "colpito" un box che in realta non lo e'.
+*
+* Soluzione: quando direction[i] == 0, si evita la divisione a monte. Si controlla
+* direttamente se l'origine del raggio, su quell'asse, e' gia' dentro lo slab
+* [axis.min, axis.max] (raggio sempre dentro, quell'asse non aggiunge vincoli) o fuori
+* (raggio mai dentro, miss garantito su tutto il box, si esce subito).
+*/

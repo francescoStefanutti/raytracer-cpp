@@ -144,7 +144,7 @@ public:
 	}
 
 	// Somma di più ottave di rumore a frequenza crescente e peso decrescente, per dettaglio "naturale"
-	double turbolence(const Point3& p, int depth) const
+	double turbulence(const Point3& p, int depth) const
 	{
 		double sum_noise = 0;
 		auto p_copy = p;
@@ -193,7 +193,7 @@ public:
 * product usa invece u/v/w grezzi (non smussati), per restare geometricamente
 * corretto. Il risultato è in circa [-1,1], non [0,1].
 *
-* turbolence(): somma "depth" chiamate a noise_smooth_gradient, raddoppiando
+* turbulence(): somma "depth" chiamate a noise_smooth_gradient, raddoppiando
 * il punto (quindi la frequenza) e dimezzando il peso ad ogni iterazione.
 * Il risultato è una texture con dettaglio a più scale sovrapposte (macchie
 * larghe + grana fine), invece di una singola scala di rumore. fabs() finale

@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <string>
 #include <memory>
 #include <vector>
 #include <execution>
@@ -13,6 +14,7 @@
 #include "color.h"
 #include "ray.h"
 #include "material.h"
+#include "external/stb_image_write.h"
 
 class Camera
 {
@@ -39,7 +41,7 @@ public:
 	Color background{ 0,0,0 }; // colore fisso restituito quando un raggio non colpisce nulla (sostituisce il vecchio skybox)
 
 
-	void Render(const Hittable& world, std::ofstream& image)
+	void Render(const Hittable& world, std::ofstream& image, const std::string& png_filename)
 	{
 		Initialize();
 
@@ -77,15 +79,23 @@ public:
 			});
 
 		// dopo avere riempito il mio array, ora lo scorro e ogni colore lo stampo applicando le correzioni
+		std::vector<unsigned char> color_list(image_height * image_width * 3);
+		
 		for (int j = 0; j < image_height; j++)
 		{
 			std::clog << "\rRighe rimanenti: "<< image_height - j << ' ' << std::flush; // leggi commento sotto
 
 			for (int i = 0; i <= image_width - 1; i++)
 			{
-				write_color(image, pixels[j*image_width+i], samples_per_pixel);
+				auto index = j * image_width + i;
+				auto colors = calculate_color(pixels[index], samples_per_pixel);
+				
+				write_color_ppm(image, colors);
+				write_color_png(colors, color_list, index * 3);
 			}
 		}
+
+		stbi_write_png(png_filename.c_str(), image_width, image_height , 3, color_list.data(), image_width * 3);
 
 		std::clog << "\rFatto					   \n";
 	}
@@ -149,10 +159,10 @@ private:
 			return Color{ 0,0,0 };
 		}
 
-		if (objects.hit(r, 0.001, 1000.0, rec)) // 0.001 per evitare shadow acne e che succeda che il raggio colpisca l'oggetto stesso una volta riflesso
+		if (objects.hit(r, 0.001, infinity, rec)) // 0.001 per evitare shadow acne e che succeda che il raggio colpisca l'oggetto stesso una volta riflesso
 		{
 			auto scatter_result = rec.mat->scatter(r, rec); // il materiale rimbalza il raggio?
-			auto emitted_result = rec.mat->emitted(rec.u, rec.v, rec.P); // il materiale emette luce propria? (nero per i materiali non luminosi)
+			auto emitted_result = rec.mat->emitted(rec.u, rec.v, rec.P, rec.front_face); // il materiale emette luce propria? (nero per i materiali non luminosi)
 
 			// se l'optional è pieno c'è stata riflessinoe
 			if (scatter_result)

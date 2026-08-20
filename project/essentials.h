@@ -4,6 +4,7 @@
 #include <memory>
 #include <cstdlib>
 #include <limits>
+#include <random>
 
 constexpr double infinity = std::numeric_limits<double>::infinity();
 
@@ -16,7 +17,10 @@ inline double deg_to_rad(double deg)
 
 inline double random_double()
 {
-	return rand() / (RAND_MAX + 1.0); // e in un'operazione matematica è presente un numero con la virgola mobile esplicito, il compilatore promuove automaticamente tutta l'operazione a double.
+	thread_local std::random_device rd;
+	thread_local std::mt19937 generator(rd());
+	thread_local std::uniform_real_distribution<double> distribution(0.0, 1.0);
+	return distribution(generator); 
 }
 
 inline double random_double(double min, double max)

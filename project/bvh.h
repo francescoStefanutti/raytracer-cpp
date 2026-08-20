@@ -6,8 +6,7 @@
 #include <algorithm>
 #include <memory>
 
-// Nodo di una Bounding Volume Hierarchy: divide ricorsivamente gli oggetti
-// in due sotto-alberi per rendere l'intersezione raggio-scena sub-lineare.
+// Nodo di una Bounding Volume Hierarchy: divide ricorsivamente gli oggetti in due sotto-alberi per rendere l'intersezione raggio-scena sub-lineare.
 class BVH_node : public Hittable
 {
 	std::shared_ptr<Hittable> left;   // sotto-albero sinistro (BVH_node o oggetto foglia)
@@ -38,8 +37,7 @@ public:
 		}
 		else
 		{
-			// Caso generale: si sceglie l'asse più lungo del bbox (split più efficace rispetto a un asse casuale), si ordina la porzione lungo quell'asse in base
-			// al punto di inizio (min) del bounding box di ciascun oggetto, poi si divide a metà e si ricorre sulle due sotto-porzioni.
+			// Caso generale: si sceglie l'asse più lungo del bbox (split più efficace rispetto a un asse casuale), si ordina la porzione lungo quell'asse in base al punto di inizio (min) del bounding box di ciascun oggetto, poi si divide a metà e si ricorre sulle due sotto-porzioni.
 			auto axis = bbox.longest_axis();
 			std::sort(objects.begin() + start, objects.begin() + end, [&](const std::shared_ptr<Hittable>& a, const std::shared_ptr<Hittable>& b)
 				{
@@ -63,11 +61,20 @@ public:
 		if (!bbox.hit(ray, Interval{ tmin, tmax }))
 			return false;
 
-		// Controlla il sotto-albero sinistro con l'intervallo originale.
-		auto hit_left = left->hit(ray, tmin, tmax, rec);
-		// Controlla il destro: se sinistra ha già trovato un colpo, restringe il range a [tmin, rec.t] così right->hit() scarta da solo eventuali colpi più lontani
-		// (niente confronto manuale finale: "il più vicino vince" automaticamente).
-		auto hit_right = hit_left ? right->hit(ray, tmin, rec.t, rec) : right->hit(ray, tmin, tmax, rec);
+		// temp_rec1/temp_rec2: appunti "usa e getta" di left/right, MAI scritti direttamente su rec (vedi nota in fondo al file).
+		HitRecord temp_rec1;
+		HitRecord temp_rec2;
+		auto hit_left = left->hit(ray, tmin, tmax, temp_rec1);
+		// Controlla il destro: se sinistra ha già trovato un colpo, restringe il range a [tmin, temp_rec1.t] così right->hit() scarta da solo eventuali colpi più lontani.
+		auto hit_right = hit_left ? right->hit(ray, tmin, temp_rec1.t, temp_rec2) : right->hit(ray, tmin, tmax, temp_rec2);
+
+		// rec viene scritto solo ora, con dati certi: mai in base a un hit() che ha già fallito.
+		if (hit_left && hit_right)
+			rec = temp_rec1.t < temp_rec2.t ? temp_rec1 : temp_rec2;
+		else if (hit_left && !hit_right)
+			rec = temp_rec1;
+		else if (!hit_left && hit_right)
+			rec = temp_rec2;
 
 		return (hit_left || hit_right);
 	}
@@ -90,7 +97,26 @@ public:
 // La discesa prosegue quindi di nodo in nodo, ciascuno con il proprio bbox.hit() come
 // guardia, finché non si raggiungono le foglie (oggetti concreti come Sphere), che
 // eseguono il test diretto senza ricorsione ulteriore. Da lì si risale un livello alla
-// volta: ogni nodo combina i risultati di left e right (propagando via rec.t il colpo
-// più vicino trovato finora) e restituisce il verdetto al proprio chiamante, fino a
-// tornare alla radice e poi a ray_color().
+// volta: ogni nodo combina i risultati di left e right e restituisce il verdetto al
+// proprio chiamante, fino a tornare alla radice e poi a ray_color().
+// ==========================================
+
+// ==========================================
+// APPUNTI: PERCHÉ temp_rec1/temp_rec2 E NON "rec" DIRETTO
+// ==========================================
+// hit() riceve "rec" per riferimento dal chiamante (un altro BVH_node, o ray_color()).
+// Se left->hit(...) o right->hit(...) scrivessero direttamente su quel "rec" esterno,
+// un oggetto che usa rec come appunti di lavoro prima di decidere se restituire true o
+// false (es. ConstantMedium, che deve calcolare dove il raggio entra/esce dal volume
+// PRIMA di sapere se ci sarà scattering) potrebbe "sporcare" rec anche quando alla fine
+// restituisce false. Se questo capita nel ramo destro DOPO che il ramo sinistro ha già
+// trovato un hit valido, il valore vero (del sinistro) andrebbe perso silenziosamente,
+// pur restituendo "true" alla fine (grazie a hit_left) — un bug difficile da notare,
+// perché l'immagine sembra quasi giusta ma con materiali/colori sbagliati qua e là.
+//
+// Per questo left e right scrivono sempre su una loro copia locale (temp_rec1/2), "usa
+// e getta": rec (quello vero, esterno) viene toccato una volta sola, alla fine, e solo
+// con dati che sappiamo per certo provenire da un hit() che ha risposto true. Stesso
+// principio già applicato in Hittable_list::hit() (con un solo temp_rec, dato che lì si
+// itera su una lista invece che confrontare solo due rami) e in ConstantMedium::hit().
 // ==========================================

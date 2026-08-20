@@ -1,16 +1,22 @@
 #pragma once
 
-#include "Vec3.h"
+#include "vec3.h"
 
-#include<iostream>
-#include<algorithm> // per metodo nativo di costrizione dei limiti
+#include <iostream>
+#include <algorithm> // per metodo nativo di costrizione dei limiti
+#include <vector>
+
+struct RGB
+{
+	int r, g, b;
+};
 
 inline double linear_to_gamma(double linear_component)
 {
 	return std::sqrt(linear_component);
 }
 
-inline void write_color(std::ostream& out, Color pixel_color, int samples_per_pixel)
+inline RGB calculate_color(Color pixel_color, int samples_per_pixel)
 {
 	// scale serve perchè facciamo la media di tutti i pixel presi nei samples
 	auto scale = 1.0 / samples_per_pixel;
@@ -28,7 +34,19 @@ inline void write_color(std::ostream& out, Color pixel_color, int samples_per_pi
 	int g = static_cast<int>(std::clamp(pixel_color_gammacorrected.y, 0.0, 0.999) * 255.999);
 	int b = static_cast<int>(std::clamp(pixel_color_gammacorrected.z, 0.0, 0.999) * 255.999);
 
-	out << r << " " << g << " " << b << "\n";
+	return { r,g,b };
+}
+
+inline void write_color_ppm(std::ostream& out, RGB color)
+{
+	out << color.r << " " << color.g << " " << color.b << "\n";
+}
+
+inline void write_color_png(RGB color, std::vector<unsigned char>& color_list, int index)
+{
+	color_list[index] = color.r;
+	color_list[index+1] = color.g;
+	color_list[index + 2] = color.b;
 }
 
 

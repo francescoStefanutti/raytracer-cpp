@@ -12,8 +12,8 @@ class Transform : public Hittable
 	AABB bbox; // bbox in spazio mondo, cachata una sola volta nel costruttoreù
 
 public:
-	Transform(std::shared_ptr<Hittable> object, RigidTransform matrix)
-		: object(object), M(matrix.forward), M_inversed(matrix.inverse)
+	Transform(std::shared_ptr<Hittable> obj, RigidTransform matrix)
+		: object(std::move(obj)), M(matrix.forward), M_inversed(matrix.inverse)
 	{
 		auto object_bbox = object->bounding_box(); // bbox originale, ancora in spazio locale
 		double x_vals[2] = { object_bbox.axis_interval(0).min, object_bbox.axis_interval(0).max };
