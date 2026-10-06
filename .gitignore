@@ -4,16 +4,26 @@ x64/
 x86/
 Debug/
 Release/
+
+# File di build intermedi
 *.ilk
 *.pdb
 *.obj
 *.exe
 *.log
+*.tlog
+*.idb
+*.ipch
 
 # File di stato utente (specifici della tua macchina, non vanno condivisi)
 *.vcxproj.user
+*.user
 *.suo
 
-# Immagini renderizzate (spesso pesanti, generate dal programma)
+# Immagini generate dal programma (image.ppm, output.png)
 *.ppm
 *.png
+
+# Eccezione: i render pubblicati nel README e nel portfolio
+!docs/renders/
+!docs/renders/*.png

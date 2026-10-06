@@ -45,7 +45,7 @@ int main()
 		auto copper = std::make_shared<Metal>(Color{ 0.7,0.4,0.2 }, 0.5);
 		auto noise_marble_material = std::make_shared<Lambertian>(noise_marble);
 		auto noise_turb_material = std::make_shared<Metal>(noise_turb, 0.3);
-		auto light_material = std::make_shared<DiffuseLight>(Color{ 4,4,4 });
+		auto light_material = std::make_shared<DiffuseLight>(Color{ 5,5,5 });
 		auto bouncing_yellow = std::make_shared<Lambertian>(Color{ 0.9,0.9,0.05 });
 		auto bouncing_magenta = std::make_shared<Metal>(Color{ 0.9,0.2,0.9 }, 0.1);
 
@@ -77,8 +77,8 @@ int main()
 		world.add(std::make_shared<GeneralTransform>(triangle_original, trasnf_triangle));
 
 		// Luce: pannello grande sopra tutta la scena
-		world.add(std::make_shared<Quad>(Point3{ -2,3,-3 }, Vec3{ 4,0,0 }, Vec3{ 0,0,4 }, light_material));
-
+		world.add(std::make_shared<Quad>(Point3{ -2,4,-3 }, Vec3{ 4,0,0 }, Vec3{ 0,0,4 }, light_material));
+		
 		// Due sfere in movimento (motion blur): centro dinamico, spostamento piccolo e verticale.
 		world.add(std::make_shared<Sphere>(0.3, Point3{ -3.8,0.3,0.3 }, Point3{ -3.8,0.6,0.3 }, bouncing_yellow));
 		world.add(std::make_shared<Sphere>(0.3, Point3{ 3.8,0.3,0.3 }, Point3{ 3.8,0.6,0.3 }, bouncing_magenta));
@@ -97,14 +97,14 @@ int main()
 	Camera camera;
 	camera.background = { 0.05, 0.05, 0.08 }; // sfondo scuro ma non nero puro, per far risaltare la luce
 	camera.aspect_ratio = 16.0 / 9.0;
-	camera.image_width = 600;
-	camera.samples_per_pixel = 200; // più campioni: con una luce vera serve più campionamento per ridurre il rumore
+	camera.image_width = 1200;
+	camera.samples_per_pixel = 1000; // più campioni: con una luce vera serve più campionamento per ridurre il rumore
 	camera.max_depth = 50;
 
 	camera.lookfrom = { 0, 3, 7 };
 	camera.lookat = { 0, 0.3, -1.5 };
 	camera.vfov = 45.0;
-	camera.defocus_angle = 0.6;
+	camera.defocus_angle = 0.3;
 	camera.focus_dist = (camera.lookfrom - camera.lookat).length();
 
 	camera.Render(*tree, image, "output.png");
